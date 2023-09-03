@@ -1,5 +1,6 @@
 from django.shortcuts import render
 #from django.http import JsonResponse
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -79,7 +80,8 @@ def getRoutes(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def getReceivedMessages(request):
-    messages = Message.objects.all()
+    receiver = request.user.id
+    messages = Message.objects.filter(receiver=receiver)
     serializer = MessageSerializer(messages, many=True)
     return Response (serializer.data) 
 
@@ -90,3 +92,25 @@ def getReceivedMessage(request, id):
     message = Message.objects.get(id=id)
     serializer = MessageSerializer(message, many=False)
     return Response (serializer.data) 
+
+# create a message
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def addMessage(request):
+    try:
+        sender = request.user
+        receiver_username = request.data["receiver"]
+        subject = request.data["subject"]
+        content = request.data["content"]
+        
+        # check if receiver exists in DB
+        try:
+            receiver = User.objects.get(username = receiver_username)
+        except User.DoesNotExist:
+            return Response ({"message": "Receiver does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create the message
+        print(Message.objects.create(sender=sender, receiver=receiver, subject=subject, content=content, unread=True))
+        return Response("Message added.")
+    except Exception as e:
+        return Response ({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
