@@ -1,5 +1,7 @@
 from django.shortcuts import render
 #from django.http import JsonResponse
+from django.db.models import Q
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -80,10 +82,20 @@ def getRoutes(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def getReceivedMessages(request):
-    receiver = request.user.id
-    messages = Message.objects.filter(receiver=receiver)
-    serializer = MessageSerializer(messages, many=True)
-    return Response (serializer.data) 
+    try:
+        receiver = request.user.id
+        messages = Message.objects.filter(receiver=receiver)
+
+        if not messages:
+            # Handle the case where no messages are found
+            return Response({"message": "No messages found for this user."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+    except Exception as e:
+        # Handle any unexpected exceptions
+        return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
 
 # get a message
 @api_view(['GET'])
@@ -114,3 +126,27 @@ def addMessage(request):
         return Response("Message added.")
     except Exception as e:
         return Response ({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+# deleting a message
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def deleteMessage(request,id):
+    user = request.user
+    print(user)
+    try:
+        # message = Message.objects.get(id=id, receiver=user)
+        message = Message.objects.filter(Q(id=id), Q(sender=user) | Q(receiver=user)).first()
+        if not message:
+            return Response({"message": "Message not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check for specific permissions (adjust 'app_name.delete_message' as needed)
+        if not user.has_perm('delete'):
+            raise PermissionDenied("You do not have permission to delete this message.")
+        message.delete()
+        # serializer = MessageSerializer(message)
+        return Response("message deleted")
+    except PermissionDenied as e:
+        return Response({"message": str(e)}, status=status.HTTP_403_FORBIDDEN)  # Return custom error message for permissions
+    except Exception as e:
+        return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

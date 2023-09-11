@@ -11,6 +11,7 @@ urlpatterns = [
     path('received-messages/', views.getReceivedMessages, name='received'),
     path('received-messages/<int:id>', views.getReceivedMessage, name='receivedOne'),
     path('add-message/', views.addMessage, name="addOne"),
+    path('delete-message/<int:id>/', views.deleteMessage, name="delete"),
     
     
     #Register
