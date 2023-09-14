@@ -12,6 +12,12 @@ urlpatterns = [
     path('received-messages/<int:id>', views.getReceivedMessage, name='receivedOne'),
     path('add-message/', views.addMessage, name="addOne"),
     path('delete-message/<int:id>/', views.deleteMessage, name="delete"),
+    path('sent-messages/', views.getSentMessages,name="sent"),
+    path('read-messages/', views.getReadMessages, name='read'),
+    path('unread-messages/', views.getUnreadMessages, name='unread'),
+    path('read-a-message/<int:id>/', views.readAMessage, name="readAmessage" ),
+    path('unread-a-message/<int:id>/', views.unReadAMessage, name="unreadAmessage" ),
+    
     
     
     #Register
